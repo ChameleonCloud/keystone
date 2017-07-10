@@ -146,7 +146,12 @@ def check_password(password, hashed):
     if password is None or hashed is None:
         return False
     password_utf8 = verify_length_and_trunc_password(password).encode('utf-8')
-    return passlib.hash.sha512_crypt.verify(password_utf8, hashed)
+    if hashed.startswith('{CRYPT}'):
+        return passlib.hash.ldap_md5_crypt.verify(password_utf8, hashed)
+    elif hashed.startswith('{MD5}'):
+        return passlib.hash.ldap_md5.verify(password_utf8, hashed)
+    else:
+        return passlib.hash.sha512_crypt.verify(password_utf8, hashed)
 
 
 def attr_as_boolean(val_attr):
