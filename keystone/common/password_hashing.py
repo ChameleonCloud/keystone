@@ -29,7 +29,9 @@ LOG = log.getLogger(__name__)
 SUPPORTED_HASHERS = frozenset([passlib.hash.bcrypt,
                                passlib.hash.scrypt,
                                passlib.hash.pbkdf2_sha512,
-                               passlib.hash.sha512_crypt])
+                               passlib.hash.sha512_crypt,
+                               passlib.hash.ldap_md5_crypt,
+                               passlib.hash.ldap_md5])
 
 _HASHER_NAME_MAP = {hasher.name: hasher for hasher in SUPPORTED_HASHERS}
 
@@ -42,18 +44,20 @@ _HASHER_NAME_MAP = {hasher.name: hasher for hasher in SUPPORTED_HASHERS}
 # (sha512_crypt) only has the .ident attribute.
 _HASHER_IDENT_MAP = {
     prefix: module for module, prefix in itertools.chain(
-        *[zip([mod] * len(getattr(mod, 'ident_values', (mod.ident,))),
-              getattr(mod, 'ident_values', (mod.ident,)))
+        *[zip([mod] * len(getattr(mod, 'ident_values', None) or (mod.ident,)),
+              getattr(mod, 'ident_values', None) or (mod.ident,))
           for mod in SUPPORTED_HASHERS])}
 
 
 def _get_hasher_from_ident(hashed):
+    # Start search at first '$' identifier (handles prefixes before first '$')
+    search_pos = hashed.index('$')
+    ident = hashed[0:hashed.index('$', search_pos + 1) + 1]
     try:
-        return _HASHER_IDENT_MAP[hashed[0:hashed.index('$', 1) + 1]]
+        return _HASHER_IDENT_MAP[ident]
     except KeyError:
         raise ValueError(
-            _('Unsupported password hashing algorithm ident: %s') %
-            hashed[0:hashed.index('$', 1) + 1])
+            _('Unsupported password hashing algorithm ident: %s') % ident)
 
 
 def verify_length_and_trunc_password(password):
