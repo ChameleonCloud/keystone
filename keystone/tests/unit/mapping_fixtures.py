@@ -1511,6 +1511,15 @@ EMPLOYEE_ASSERTION_MULTIPLE_GROUPS = {
     'Thing': 'yes!;maybe!;no!!'
 }
 
+EMPLOYEE_ASSERTION_MULTIPLE_GROUP_TYPES = {
+    'Email': 'tim@example.com',
+    'UserName': 'tbo',
+    'FirstName': 'Tim',
+    'LastName': 'Bo',
+    'orgPersonType': 'Developer;Employee',
+    'orgPersonBuilding': 'BuildingX;BuildingY'
+}
+
 EMPLOYEE_ASSERTION_PREFIXED = {
     'PREFIX_Email': 'tim@example.com',
     'PREFIX_UserName': 'tbo',
@@ -1711,15 +1720,6 @@ MAPPING_PROJECTS = {
             "remote": [
                 {
                     "type": "UserName"
-                },
-                {
-                    "type": "Email",
-                },
-                {
-                    "type": "orgPersonType",
-                    "any_one_of": [
-                        "Employee"
-                    ]
                 }
             ]
         }
@@ -1773,5 +1773,110 @@ MAPPING_PROJECTS_WITHOUT_NAME = {
                 }
             ]
         },
+    ]
+}
+
+MAPPING_PROJECTS_MAPPED_NAME = {
+    "rules": [
+        {
+            "local": [
+                {
+                    "user": {
+                        "name": "{0}"
+                    }
+                },
+                {
+                    "projects": [
+                        {
+                            "name": "{1}",
+                            "roles": [
+                                {"name": "member"}
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "remote": [
+                {
+                    "type": "UserName"
+                },
+                {
+                    "type": "orgPersonBuilding"
+                }
+            ]
+        }
+    ]
+}
+
+MAPPING_PROJECTS_MAPPED_ROLES = {
+    "rules": [
+        {
+            "local": [
+                {
+                    "user": {
+                        "name": "{0}"
+                    }
+                },
+                {
+                    "projects": [
+                        {
+                            "name": "Production",
+                            "roles": [
+                                {"name": "{1}"}
+                            ]
+                        },
+                        {
+                            "name": "Project for {0}",
+                            "roles": [
+                                {"name": "Admin"}
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "remote": [
+                {
+                    "type": "UserName"
+                },
+                {
+                    "type": "orgPersonType"
+                }
+            ]
+        }
+    ]
+}
+
+MAPPING_PROJECT_MAPPED_NAME_AND_ROLES = {
+    "rules": [
+        {
+            "local": [
+                {
+                    "user": {
+                        "name": "{0}"
+                    }
+                },
+                {
+                    "projects": [
+                        {
+                            "name": "{1}",
+                            "roles": [
+                                {"name": "{2}"}
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "remote": [
+                {
+                    "type": "UserName"
+                },
+                {
+                    "type": "orgPersonBuilding"
+                },
+                {
+                    "type": "orgPersonType"
+                }
+            ]
+        }
     ]
 }
