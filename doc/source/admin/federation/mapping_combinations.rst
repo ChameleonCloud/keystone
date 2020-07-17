@@ -1169,6 +1169,15 @@ assignments are created for the user on these projects (not through group
 membership), and these assignments persist in keystone's database even if the
 mapping is later changed.
 
+By default, assignments are only ever created, never destroyed. If you need
+to also automatically deprovision assignments that are no longer returned
+by the mapping, use ``remove_dangling_assignments``:
+
+.. code-block:: ini
+
+   [mapped]
+   remove_dangling_assignments = True
+
 Auto-Provisioning Example
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
