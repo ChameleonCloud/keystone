@@ -154,6 +154,10 @@ def handle_unscoped_token(auth_payload, resource_api, federation_api,
                 project = resource_api.get_project_by_name(
                     shadow_project['name'], idp_domain_id
                 )
+                project_extra = shadow_project.get('extra')
+                if project_extra:
+                    (project_extra.pop(key) for key in ['name', 'domain_id'])
+                    resource_api.update_project(project['id'], project_extra)
             except exception.ProjectNotFound:
                 LOG.info(
                     'Project %(project_name)s does not exist. It will be '
@@ -161,11 +165,12 @@ def handle_unscoped_token(auth_payload, resource_api, federation_api,
                     {'project_name': shadow_project['name'],
                      'user_id': user['id']}
                 )
-                project_ref = {
+                project_ref = shadow_project.get('extra', {})
+                project_ref.update({
                     'id': uuid.uuid4().hex,
                     'name': shadow_project['name'],
-                    'domain_id': idp_domain_id
-                }
+                    'domain_id': idp_domain_id,
+                })
                 project = resource_api.create_project(
                     project_ref['id'],
                     project_ref
