@@ -98,6 +98,7 @@ MAPPING_SCHEMA = {
                                         "additionalProperties": False,
                                         "properties": {
                                             "name": {"type": "string"},
+                                            "extra": {"type": "object"},
                                             "roles": ROLE_PROPERTIES
                                         }
                                     }
@@ -607,14 +608,25 @@ class RuleProcessor(object):
     def _normalize_projects(self, identity_value):
         project_dicts = []
         for project in identity_value['projects']:
-            project_names_list = self._expand_listlike(project['name'])
+            project_names = self._expand_listlike(project['name'])
             role_names_list = []
             for role in project['roles']:
                 role_names_list.extend(self._expand_listlike(role['name']))
-            project_dicts.extend([{'name': p_name, 'roles': [
-                                    {'name': r_name}
-                                    for r_name in role_names_list
-                                 ]} for p_name in project_names_list])
+            project_extras = {
+                k: self._expand_listlike(v)
+                for k, v in project.get('extra', {}).items()
+            }
+            project_dicts.extend([{
+                'name': p_name,
+                'extra': {
+                    k: (extras[i] if len(extras) > 1 else extras[0]) or ''
+                    for k, extras in project_extras.items()
+                },
+                'roles': [
+                    {'name': r_name}
+                    for r_name in role_names_list
+                ],
+            } for i, p_name in enumerate(project_names)])
         return project_dicts
 
     def _expand_listlike(self, value):
