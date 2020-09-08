@@ -45,6 +45,15 @@ assertions. Matched variables are passed into the federated mapping engine.
     ),
 )
 
+assertion_payload = cfg.StrOpt(
+    'assertion_payload',
+    default='',
+    help=utils.fmt("""
+Name of environment variable to look for entire assertion payload. If an
+environment variable with this name is found, the variable is interpreted as
+JSON and its contents are added to the assertions.
+"""))
+
 remote_id_attribute = cfg.StrOpt(
     'remote_id_attribute',
     help=utils.fmt(
@@ -147,6 +156,7 @@ GROUP_NAME = __name__.split('.')[-1]
 ALL_OPTS = [
     driver,
     assertion_prefix,
+    assertion_payload,
     remote_id_attribute,
     federated_domain_name,
     trusted_dashboard,
