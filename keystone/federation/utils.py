@@ -146,7 +146,7 @@ IDP_ATTRIBUTE_MAPPING_SCHEMA_1_0 = {
             "required": ['type', 'any_one_of'],
             "properties": {
                 "type": {"type": "string"},
-                "any_one_of": {"type": "array"},
+                "any_one_of": {"oneOf": [{"type": "object"}, {"type": "array"}]},
                 "regex": {"type": "boolean"},
             },
         },
@@ -156,7 +156,7 @@ IDP_ATTRIBUTE_MAPPING_SCHEMA_1_0 = {
             "required": ['type', 'not_any_of'],
             "properties": {
                 "type": {"type": "string"},
-                "not_any_of": {"type": "array"},
+                "not_any_of": {"oneOf": [{"type": "object"}, {"type": "array"}]},
                 "regex": {"type": "boolean"},
             },
         },
@@ -166,7 +166,7 @@ IDP_ATTRIBUTE_MAPPING_SCHEMA_1_0 = {
             "required": ['type', 'blacklist'],
             "properties": {
                 "type": {"type": "string"},
-                "blacklist": {"type": "array"},
+                "blacklist": {"oneOf": [{"type": "object"}, {"type": "array"}]},
                 "regex": {"type": "boolean"},
             },
         },
@@ -176,7 +176,7 @@ IDP_ATTRIBUTE_MAPPING_SCHEMA_1_0 = {
             "required": ['type', 'whitelist'],
             "properties": {
                 "type": {"type": "string"},
-                "whitelist": {"type": "array"},
+                "whitelist": {"oneOf": [{"type": "object"}, {"type": "array"}]},
                 "regex": {"type": "boolean"},
             },
         },
@@ -963,19 +963,31 @@ class RuleProcessor:
                   is 'any_one_of' or 'not_any_of')
 
         """
-        if regex:
-            matches = self._evaluate_values_by_regex(values, assertion_values)
+        def contains(item, space):
+            if regex:
+                return any([re.search(r, item) for r in space])
+            else:
+                return item in space
+
+        if isinstance(values, dict):
+            matches = [
+                v for v in assertion_values
+                if all(
+                    contains(v.get(prop), _values)
+                    for prop, _values in values.items())]
         else:
-            matches = set(values).intersection(set(assertion_values))
+            matches = [
+                v for v in assertion_values
+                if contains(v, values)]
 
         if eval_type == self._EvalType.ANY_ONE_OF:
             return bool(matches)
         elif eval_type == self._EvalType.NOT_ANY_OF:
             return not bool(matches)
         elif eval_type == self._EvalType.BLACKLIST:
-            return list(set(assertion_values).difference(set(matches)))
+            return [v for v in assertion_values if v not in matches]
         elif eval_type == self._EvalType.WHITELIST:
-            return list(matches)
+            return matches
         else:
             raise exception.UnexpectedError(
                 _('Unexpected evaluation type "%(eval_type)s"')
