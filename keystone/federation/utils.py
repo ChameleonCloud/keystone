@@ -13,6 +13,7 @@
 """Utilities for Federation Extension."""
 
 import ast
+import json
 import re
 
 import flask
@@ -435,6 +436,8 @@ def transform_to_group_ids(group_names, mapping_id,
 def get_assertion_params_from_env():
     LOG.debug('Environment variables: %s', flask.request.environ)
     prefix = CONF.federation.assertion_prefix
+    payload_key = CONF.federation.assertion_payload
+    assertion_params = {}
     for k, v in list(flask.request.environ.items()):
         if not k.startswith(prefix):
             continue
@@ -443,7 +446,15 @@ def get_assertion_params_from_env():
         # correctly encoding the data.
         if not isinstance(v, six.text_type) and getattr(v, 'decode', False):
             v = v.decode('ISO-8859-1')
-        yield (k, v)
+        if payload_key and k == payload_key:
+            try:
+                assertion_params.update(json.loads(v))
+            except json.JSONDecodeError:
+                LOG.debug('Could not parse assertion payload at %s as JSON',
+                          payload_key)
+        else:
+            assertion_params[k] = v
+    return assertion_params
 
 
 class RuleProcessor(object):
@@ -524,13 +535,19 @@ class RuleProcessor(object):
             }
 
         """
-        # Assertions will come in as string key-value pairs, and will use a
+        # Assertions will come in as key-value pairs, and strings will use a
         # semi-colon to indicate multiple values, i.e. groups.
         # This will create a new dictionary where the values are arrays, and
         # any multiple values are stored in the arrays.
         LOG.debug('assertion data: %s', assertion_data)
-        assertion = {n: v.split(';') for n, v in assertion_data.items()
-                     if isinstance(v, six.string_types)}
+        assertion = {}
+        for k, v in assertion_data.items():
+            if isinstance(v, six.string_types):
+                assertion[k] = v.split(';')
+            elif isinstance(v, list):
+                assertion[k] = v
+            elif isinstance(v, dict):
+                assertion[k] = [v]
         LOG.debug('assertion: %s', assertion)
         identity_values = []
 
