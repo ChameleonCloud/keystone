@@ -14,6 +14,7 @@
 
 import ast
 import json
+import operator
 import re
 
 import flask
@@ -270,6 +271,34 @@ MAPPING_SCHEMA = {
 }
 
 
+class DirectMap(object):
+    """An abstraction around an individual remote match.
+
+    When formatted, any item retrievals on the format syntax are treated as
+    a map operation, returning a list of values at that key for each item in
+    the match. For example, given:
+
+      d = DirectMap([{'name': 'foo'}, {'name': 'bar'}])
+
+    Normally "{name}".format(d) would fail to format, as no list index was
+    specified (would have to be "{0[name]}" or "{1[name]}"); instead, we get
+    the output "['foo', 'bar']".
+    """
+    def __init__(self, entry):
+        self._entry = entry
+
+    def __str__(self):
+        """return the direct map entry as a string."""
+        return '%s' % self._entry
+
+    def __getitem__(self, key):
+        """Used by Python when executing ``''.format(*DirectMaps())``."""
+        if isinstance(self._entry, list):
+            return list(map(operator.itemgetter(key), self._entry))
+        else:
+            return self._entry[key]
+
+
 class DirectMaps(object):
     """An abstraction around the remote matches.
 
@@ -295,9 +324,9 @@ class DirectMaps(object):
         """Used by Python when executing ``''.format(*DirectMaps())``."""
         value = self._matches[idx]
         if isinstance(value, list) and len(value) == 1:
-            return value[0]
+            return DirectMap(value[0])
         else:
-            return value
+            return DirectMap(value)
 
 
 def validate_mapping_structure(ref):
