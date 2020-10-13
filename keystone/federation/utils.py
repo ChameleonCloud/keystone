@@ -701,6 +701,8 @@ class RuleProcessor:
         """
         try:
             value_list = ast.literal_eval(value)
+            if not isinstance(value_list, list):
+                value_list = [value_list]
         except (ValueError, SyntaxError):
             value_list = [value]
         return value_list
