@@ -153,6 +153,9 @@ IDP_ATTRIBUTE_MAPPING_SCHEMA_1_0 = {
                 "type": {
                     "type": "string"
                 },
+                "optional": {
+                    "type": "boolean"
+                }
             },
             "additionalProperties": False,
         },
@@ -163,6 +166,9 @@ IDP_ATTRIBUTE_MAPPING_SCHEMA_1_0 = {
             "properties": {
                 "type": {
                     "type": "string"
+                },
+                "optional": {
+                    "type": "boolean"
                 },
                 "any_one_of": {
                     "oneOf": [
@@ -187,6 +193,9 @@ IDP_ATTRIBUTE_MAPPING_SCHEMA_1_0 = {
                 "type": {
                     "type": "string"
                 },
+                "optional": {
+                    "type": "boolean"
+                },
                 "not_any_of": {
                     "oneOf": [
                         {
@@ -210,6 +219,9 @@ IDP_ATTRIBUTE_MAPPING_SCHEMA_1_0 = {
                 "type": {
                     "type": "string"
                 },
+                "optional": {
+                    "type": "boolean"
+                },
                 "blacklist": {
                     "oneOf": [
                         {
@@ -232,6 +244,9 @@ IDP_ATTRIBUTE_MAPPING_SCHEMA_1_0 = {
             "properties": {
                 "type": {
                     "type": "string"
+                },
+                "optional": {
+                    "type": "boolean"
                 },
                 "whitelist": {
                     "oneOf": [
@@ -970,9 +985,17 @@ class RuleProcessor(object):
             requirement_type = requirement['type']
             direct_map_values = assertion.get(requirement_type)
             regex = requirement.get('regex', False)
+            optional = requirement.get('optional', False)
 
             if not direct_map_values:
-                return None
+                # If a remote requirement is optional, treat it as if there
+                # were no values for that requirement set. This allows for e.g.,
+                # empty lists of groups or projects to associate with a user,
+                # which can be valid.
+                if optional:
+                    direct_map_values = []
+                else:
+                    return None
 
             any_one_values = requirement.get(self._EvalType.ANY_ONE_OF)
             if any_one_values is not None:
