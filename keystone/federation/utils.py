@@ -138,7 +138,10 @@ IDP_ATTRIBUTE_MAPPING_SCHEMA_1_0 = {
         "empty": {
             "type": "object",
             "required": ['type'],
-            "properties": {"type": {"type": "string"}},
+            "properties": {
+                "type": {"type": "string"},
+                "optional": {"type": "boolean"},
+            },
             "additionalProperties": False,
         },
         "any_one_of": {
@@ -147,6 +150,7 @@ IDP_ATTRIBUTE_MAPPING_SCHEMA_1_0 = {
             "required": ['type', 'any_one_of'],
             "properties": {
                 "type": {"type": "string"},
+                "optional": {"type": "boolean"},
                 "any_one_of": {"oneOf": [{"type": "object"}, {"type": "array"}]},
                 "regex": {"type": "boolean"},
             },
@@ -157,6 +161,7 @@ IDP_ATTRIBUTE_MAPPING_SCHEMA_1_0 = {
             "required": ['type', 'not_any_of'],
             "properties": {
                 "type": {"type": "string"},
+                "optional": {"type": "boolean"},
                 "not_any_of": {"oneOf": [{"type": "object"}, {"type": "array"}]},
                 "regex": {"type": "boolean"},
             },
@@ -167,6 +172,7 @@ IDP_ATTRIBUTE_MAPPING_SCHEMA_1_0 = {
             "required": ['type', 'blacklist'],
             "properties": {
                 "type": {"type": "string"},
+                "optional": {"type": "boolean"},
                 "blacklist": {"oneOf": [{"type": "object"}, {"type": "array"}]},
                 "regex": {"type": "boolean"},
             },
@@ -177,6 +183,7 @@ IDP_ATTRIBUTE_MAPPING_SCHEMA_1_0 = {
             "required": ['type', 'whitelist'],
             "properties": {
                 "type": {"type": "string"},
+                "optional": {"type": "boolean"},
                 "whitelist": {"oneOf": [{"type": "object"}, {"type": "array"}]},
                 "regex": {"type": "boolean"},
             },
@@ -910,9 +917,17 @@ class RuleProcessor:
             requirement_type = requirement['type']
             direct_map_values = assertion.get(requirement_type)
             regex = requirement.get('regex', False)
+            optional = requirement.get('optional', False)
 
             if not direct_map_values:
-                return None
+                # If a remote requirement is optional, treat it as if there
+                # were no values for that requirement set. This allows for e.g.,
+                # empty lists of groups or projects to associate with a user,
+                # which can be valid.
+                if optional:
+                    direct_map_values = []
+                else:
+                    return None
 
             any_one_values = requirement.get(self._EvalType.ANY_ONE_OF)
             if any_one_values is not None:
