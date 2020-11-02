@@ -943,6 +943,15 @@ class MappingRuleEngineTests(unit.BaseTestCase):
         ]
         self.assertEqual(expected_projects, values['projects'])
 
+    def test_mapping_projects_optional_remote_missing(self):
+        mapping = mapping_fixtures.MAPPING_PROJECTS_OPTIONAL_REMOTE
+        mapping_utils.validate_mapping_structure(mapping)
+        assertion = mapping_fixtures.EMPLOYEE_ASSERTION
+        rp = mapping_utils.RuleProcessor(FAKE_MAPPING_ID, mapping['rules'])
+        values = rp.process(assertion)
+
+        self.assertEqual([], values['projects'])
+
     def test_mapping_projects(self):
         mapping = mapping_fixtures.MAPPING_PROJECTS
         assertion = mapping_fixtures.EMPLOYEE_ASSERTION

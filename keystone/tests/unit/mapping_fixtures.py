@@ -1211,6 +1211,21 @@ MAPPING_PROJECTS_JSON = {
     ]
 }
 
+MAPPING_PROJECTS_OPTIONAL_REMOTE = {
+    "rules": [
+        {
+            "local": [
+                {"user": {"name": "{0}"}},
+                {"projects": [{"name": "{1}", "roles": [{"name": "member"}]}]},
+            ],
+            "remote": [
+                {"type": "UserName"},
+                {"type": "orgPersonBuilding", "optional": True},
+            ],
+        }
+    ]
+}
+
 MAPPING_PROJECTS_WITHOUT_ROLES = {
     "rules": [
         {

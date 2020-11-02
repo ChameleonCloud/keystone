@@ -3814,6 +3814,38 @@ class ShadowMappingTests(test_v3.RestfulTestCase, FederatedSetupMixin):
             domain_role_assignments[0]['role_id'])
         self.assertEqual(len(domain_role_assignments), 1)
 
+    def test_missing_optional_remote_removes_dangling_assignments(self):
+        self.config_fixture.config(
+            group='mapped', remove_dangling_assignments=True
+        )
+        # Authenticate once to create the projects and role assignments
+        response = self._issue_unscoped_token()
+        self.assertValidMappedUser(
+            render_token.render_token_response_from_model(response)['token']
+        )
+        unscoped_token = response.id
+        response = self.get('/auth/projects', token=unscoped_token)
+        project_names = [p['name'] for p in response.json_body['projects']]
+        self.assertCountEqual(self.expected_results, project_names)
+
+        # MAPPING_PROJECTS_OPTIONAL_REMOTE has an optional map from
+        # orgPersonBuilding to projects. EMPLOYEE_ASSERTION has no
+        # orgPersonBuilding attribute, which should result in no projects
+        # being mapped.
+        PROVIDERS.federation_api.update_mapping(
+            self.mapping['id'],
+            mapping_fixtures.MAPPING_PROJECTS_OPTIONAL_REMOTE,
+        )
+
+        # Authenticate again and verify the user has no projects left
+        response = self._issue_unscoped_token()
+        self.assertValidMappedUser(
+            render_token.render_token_response_from_model(response)['token']
+        )
+        unscoped_token = response.id
+        response = self.get('/auth/projects', token=unscoped_token)
+        self.assertEqual([], response.json_body['projects'])
+
 
 class JsonHomeTests(test_v3.RestfulTestCase, test_v3.JsonHomeTestMixin):
     JSON_HOME_DATA = {
