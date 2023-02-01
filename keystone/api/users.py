@@ -35,7 +35,6 @@ from keystone.identity import schema
 from keystone import notifications
 from keystone.server import flask as ks_flask
 
-
 CRED_TYPE_EC2 = 'ec2'
 CONF = keystone.conf.CONF
 ENFORCER = rbac_enforcer.RBACEnforcer
@@ -187,12 +186,41 @@ class UserResource(ks_flask.ResourceBase):
 
         GET/HEAD /v3/users/{user_id}
         """
-        ENFORCER.enforce_call(
-            action='identity:get_user',
-            build_target=_build_user_target_enforcement
-        )
+        # As a particular override for Chameleon, we allow users to get
+        # other users in their same project.
+        if self._in_same_project_as_user(user_id):
+            ks_flask.common.set_unenforced_ok()
+        else:
+            ENFORCER.enforce_call(
+                action='identity:get_user',
+                build_target=_build_user_target_enforcement
+            )
         ref = PROVIDERS.identity_api.get_user(user_id)
         return self.wrap_member(ref)
+
+    def _in_same_project_as_user(self, user_id):
+        """Returns True if the requesting user is in the same project
+        as the target user
+        """
+        requestor_assignments = PROVIDERS.assignment_api.list_role_assignments(
+            user_id=self.oslo_context.user_id
+        )
+        target_assignments = PROVIDERS.assignment_api.list_role_assignments(user_id=user_id)
+        member_roles = list(map(PROVIDERS.role_api.get_unique_role_by_name, ("member", "_member_")))
+
+        def is_member_assignment(assignment):
+            return any(assignment.get("role_id") == role.get("id") for role in member_roles)
+
+        requestor_projects = {
+            m.get("project_id", 0) for m in filter(is_member_assignment, requestor_assignments)
+        }
+        target_projects = {
+            m.get("project_id", 1) for m in filter(is_member_assignment, target_assignments)
+        }
+
+        # If there is overlap between the two sets,
+        # the requestor shares at least one project with the target
+        return not requestor_projects.isdisjoint(target_projects)
 
     def _list_users(self):
         """List users.
