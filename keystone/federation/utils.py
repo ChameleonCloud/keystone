@@ -750,17 +750,21 @@ class RuleProcessor(object):
                 k: self._expand_listlike(v)
                 for k, v in project.get('extra', {}).items()
             }
-            project_dicts.extend([{
-                'name': p_name,
-                'extra': {
+            for i, p_name in enumerate(project_names):
+                extra = {
                     k: (extras[i] if len(extras) > 1 else extras[0]) or ''
                     for k, extras in project_extras.items()
-                },
-                'roles': [
-                    {'name': r_name}
-                    for r_name in role_names_list
-                ],
-            } for i, p_name in enumerate(project_names)])
+                }
+                tmp_dict = {
+                    'name': p_name,
+                    'roles': [
+                        {'name': r_name}
+                        for r_name in role_names_list
+                    ],
+                }
+                if extra:
+                    tmp_dict.update({'extra': extra})
+                project_dicts.append(tmp_dict)
         return project_dicts
 
     def _expand_listlike(self, value):
