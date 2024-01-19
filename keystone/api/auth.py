@@ -601,7 +601,7 @@ class AuthFederationAPI(ks_flask.APIBase):
             resource=AuthFederationWebSSODiscoverResource,
             url='/auth/OS-FEDERATION/websso/<string:protocol_id>/discover',
             resource_kwargs={},
-            rel='websso',
+            rel='websso_discover',
             resource_relation_func=(
                 json_home_relations.os_federation_resource_rel_func),
             path_vars={
