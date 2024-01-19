@@ -1576,6 +1576,16 @@ EMPLOYEE_ASSERTION_MULTIPLE_GROUP_TYPES = {
     'orgPersonBuilding': 'BuildingX;BuildingY'
 }
 
+EMPLOYEE_ASSERTION_MULTIPLE_GROUP_TYPES_EXTRA = {
+    'Email': 'tim@example.com',
+    'UserName': 'tbo',
+    'FirstName': 'Tim',
+    'LastName': 'Bo',
+    'orgPersonType': 'Developer;Employee',
+    'orgPersonBuilding': 'BuildingX;BuildingY',
+    'orgPersonBuildingNickName': 'BuildingXNick;'
+}
+
 EMPLOYEE_ASSERTION_PREFIXED = {
     'PREFIX_Email': 'tim@example.com',
     'PREFIX_UserName': 'tbo',
@@ -1931,6 +1941,38 @@ MAPPING_PROJECT_MAPPED_NAME_AND_ROLES = {
                 },
                 {
                     "type": "orgPersonType"
+                }
+            ]
+        }
+    ]
+}
+
+MAPPING_PROJECTS_MAPPED_NAME_AND_ROLES_AND_EXTRA = {
+    "rules": [
+        {
+            "local": [
+                {
+                    "user": {
+                        "name": "{0}",
+                    }
+                },
+                {
+                    "projects": [
+                        {"name": "{1}",
+                         "extra": {"nickname": "{2}"},
+                         "roles": [{"name": "member"}]}
+                    ]
+                }
+            ],
+            "remote": [
+                {
+                    "type": "UserName"
+                },
+                {
+                    "type": "orgPersonBuilding"
+                },
+                {
+                    "type": "orgPersonBuildingNickName"
                 }
             ]
         }
