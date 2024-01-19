@@ -377,6 +377,10 @@ V3_JSON_HOME_RESOURCES = {
         'href-template': '/auth/OS-FEDERATION/websso/{protocol_id}',
         'href-vars': {
             'protocol_id': PROTOCOL_ID_PARAM_RELATION, }},
+    _build_federation_rel(resource_name='websso_discover'): {
+        'href-template': '/auth/OS-FEDERATION/websso/{protocol_id}/discover',
+        'href-vars': {
+            'protocol_id': PROTOCOL_ID_PARAM_RELATION, }},
     _build_federation_rel(resource_name='projects'): {
         'href': '/auth/projects'},
     _build_federation_rel(resource_name='saml2'): {
