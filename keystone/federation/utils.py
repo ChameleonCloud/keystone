@@ -13,6 +13,8 @@
 """Utilities for Federation Extension."""
 
 import ast
+import json
+import operator
 import re
 
 import flask
@@ -98,6 +100,7 @@ MAPPING_SCHEMA = {
                                         "additionalProperties": False,
                                         "properties": {
                                             "name": {"type": "string"},
+                                            "extra": {"type": "object"},
                                             "roles": ROLE_PROPERTIES
                                         }
                                     }
@@ -145,6 +148,9 @@ MAPPING_SCHEMA = {
                 "type": {
                     "type": "string"
                 },
+                "optional": {
+                    "type": "boolean"
+                }
             },
             "additionalProperties": False,
         },
@@ -156,8 +162,18 @@ MAPPING_SCHEMA = {
                 "type": {
                     "type": "string"
                 },
+                "optional": {
+                    "type": "boolean"
+                },
                 "any_one_of": {
-                    "type": "array"
+                    "oneOf": [
+                        {
+                            "type": "object"
+                        },
+                        {
+                            "type": "array"
+                        }
+                    ]
                 },
                 "regex": {
                     "type": "boolean"
@@ -172,8 +188,18 @@ MAPPING_SCHEMA = {
                 "type": {
                     "type": "string"
                 },
+                "optional": {
+                    "type": "boolean"
+                },
                 "not_any_of": {
-                    "type": "array"
+                    "oneOf": [
+                        {
+                            "type": "object"
+                        },
+                        {
+                            "type": "array"
+                        }
+                    ]
                 },
                 "regex": {
                     "type": "boolean"
@@ -188,8 +214,18 @@ MAPPING_SCHEMA = {
                 "type": {
                     "type": "string"
                 },
+                "optional": {
+                    "type": "boolean"
+                },
                 "blacklist": {
-                    "type": "array"
+                    "oneOf": [
+                        {
+                            "type": "object"
+                        },
+                        {
+                            "type": "array"
+                        }
+                    ]
                 },
                 "regex": {
                     "type": "boolean"
@@ -204,8 +240,18 @@ MAPPING_SCHEMA = {
                 "type": {
                     "type": "string"
                 },
+                "optional": {
+                    "type": "boolean"
+                },
                 "whitelist": {
-                    "type": "array"
+                    "oneOf": [
+                        {
+                            "type": "object"
+                        },
+                        {
+                            "type": "array"
+                        }
+                    ]
                 },
                 "regex": {
                     "type": "boolean"
@@ -241,6 +287,34 @@ MAPPING_SCHEMA = {
 }
 
 
+class DirectMap(object):
+    """An abstraction around an individual remote match.
+
+    When formatted, any item retrievals on the format syntax are treated as
+    a map operation, returning a list of values at that key for each item in
+    the match. For example, given:
+
+      d = DirectMap([{'name': 'foo'}, {'name': 'bar'}])
+
+    Normally "{name}".format(d) would fail to format, as no list index was
+    specified (would have to be "{0[name]}" or "{1[name]}"); instead, we get
+    the output "['foo', 'bar']".
+    """
+    def __init__(self, entry):
+        self._entry = entry
+
+    def __str__(self):
+        """return the direct map entry as a string."""
+        return '%s' % self._entry
+
+    def __getitem__(self, key):
+        """Used by Python when executing ``''.format(*DirectMaps())``."""
+        if isinstance(self._entry, list):
+            return list(map(operator.itemgetter(key), self._entry))
+        else:
+            return self._entry[key]
+
+
 class DirectMaps(object):
     """An abstraction around the remote matches.
 
@@ -266,9 +340,9 @@ class DirectMaps(object):
         """Used by Python when executing ``''.format(*DirectMaps())``."""
         value = self._matches[idx]
         if isinstance(value, list) and len(value) == 1:
-            return value[0]
+            return DirectMap(value[0])
         else:
-            return value
+            return DirectMap(value)
 
 
 def validate_mapping_structure(ref):
@@ -438,6 +512,8 @@ def transform_to_group_ids(group_names, mapping_id,
 def get_assertion_params_from_env():
     LOG.debug('Environment variables: %s', flask.request.environ)
     prefix = CONF.federation.assertion_prefix
+    payload_key = CONF.federation.assertion_payload
+    assertion_params = {}
     for k, v in list(flask.request.environ.items()):
         if not k.startswith(prefix):
             continue
@@ -446,7 +522,15 @@ def get_assertion_params_from_env():
         # correctly encoding the data.
         if not isinstance(v, str) and getattr(v, 'decode', False):
             v = v.decode('ISO-8859-1')
-        yield (k, v)
+        if payload_key and k == payload_key:
+            try:
+                assertion_params.update(json.loads(v))
+            except json.JSONDecodeError:
+                LOG.debug('Could not parse assertion payload at %s as JSON',
+                          payload_key)
+        else:
+            assertion_params[k] = v
+    return assertion_params
 
 
 class RuleProcessor(object):
@@ -527,13 +611,19 @@ class RuleProcessor(object):
             }
 
         """
-        # Assertions will come in as string key-value pairs, and will use a
+        # Assertions will come in as key-value pairs, and strings will use a
         # semi-colon to indicate multiple values, i.e. groups.
         # This will create a new dictionary where the values are arrays, and
         # any multiple values are stored in the arrays.
         LOG.debug('assertion data: %s', assertion_data)
-        assertion = {n: v.split(';') for n, v in assertion_data.items()
-                     if isinstance(v, str)}
+        assertion = {}
+        for k, v in assertion_data.items():
+            if isinstance(v, str):
+                assertion[k] = v.split(';')
+            elif isinstance(v, list):
+                assertion[k] = v
+            elif isinstance(v, dict):
+                assertion[k] = [v]
         LOG.debug('assertion: %s', assertion)
         identity_values = []
 
@@ -603,6 +693,51 @@ class RuleProcessor(object):
             group_dicts = [{'name': name, 'domain': domain} for name in
                            group_names_list]
         return group_dicts
+
+    def _normalize_projects(self, identity_value):
+        project_dicts = []
+        for project in identity_value['projects']:
+            project_names = self._expand_listlike(project['name'])
+            role_names_list = []
+            for role in project['roles']:
+                role_names_list.extend(self._expand_listlike(role['name']))
+            project_extras = {
+                k: self._expand_listlike(v)
+                for k, v in project.get('extra', {}).items()
+            }
+            for i, p_name in enumerate(project_names):
+                extra = {
+                    k: (extras[i] if len(extras) > 1 else extras[0]) or ''
+                    for k, extras in project_extras.items()
+                }
+                tmp_dict = {
+                    'name': p_name,
+                    'roles': [
+                        {'name': r_name}
+                        for r_name in role_names_list
+                    ],
+                }
+                if extra:
+                    tmp_dict.update({'extra': extra})
+                project_dicts.append(tmp_dict)
+        return project_dicts
+
+    def _expand_listlike(self, value):
+        """If value is a string representation of a list, parse it to a real
+        list. Also, if the provided value contains only one element, it will
+        be parsed as a simple string, and not a list or the representation
+        of a list.
+
+        This is necessary due to the way we do direct mapping substitutions
+        today (see function _update_local_mapping())
+        """
+        try:
+            value_list = ast.literal_eval(value)
+            if not isinstance(value_list, list):
+                value_list = [value_list]
+        except (ValueError, SyntaxError):
+            value_list = [value]
+        return value_list
 
     def _transform(self, identity_values):
         """Transform local mappings, to an easier to understand format.
@@ -694,18 +829,11 @@ class RuleProcessor(object):
                 group_dicts = self._normalize_groups(identity_value)
                 group_names.extend(group_dicts)
             if 'group_ids' in identity_value:
-                # If identity_values['group_ids'] is a string representation
-                # of a list, parse it to a real list. Also, if the provided
-                # group_ids parameter contains only one element, it will be
-                # parsed as a simple string, and not a list or the
-                # representation of a list.
-                try:
-                    group_ids.update(
-                        ast.literal_eval(identity_value['group_ids']))
-                except (ValueError, SyntaxError):
-                    group_ids.update([identity_value['group_ids']])
+                group_ids.update(self._expand_listlike(
+                    identity_value['group_ids']))
             if 'projects' in identity_value:
-                projects = identity_value['projects']
+                project_dicts = self._normalize_projects(identity_value)
+                projects.extend(project_dicts)
 
         normalize_user(user)
 
@@ -817,9 +945,17 @@ class RuleProcessor(object):
             requirement_type = requirement['type']
             direct_map_values = assertion.get(requirement_type)
             regex = requirement.get('regex', False)
+            optional = requirement.get('optional', False)
 
             if not direct_map_values:
-                return None
+                # If a remote requirement is optional, treat it as if there
+                # were no values for that requirement set. This allows for e.g.,
+                # empty lists of groups or projects to associate with a user,
+                # which can be valid.
+                if optional:
+                    direct_map_values = []
+                else:
+                    return None
 
             any_one_values = requirement.get(self._EvalType.ANY_ONE_OF)
             if any_one_values is not None:
@@ -905,19 +1041,31 @@ class RuleProcessor(object):
                   is 'any_one_of' or 'not_any_of')
 
         """
-        if regex:
-            matches = self._evaluate_values_by_regex(values, assertion_values)
+        def contains(item, space):
+            if regex:
+                return any([re.search(r, item) for r in space])
+            else:
+                return item in space
+
+        if isinstance(values, dict):
+            matches = [
+                v for v in assertion_values
+                if all(
+                    contains(v.get(prop), _values)
+                    for prop, _values in values.items())]
         else:
-            matches = set(values).intersection(set(assertion_values))
+            matches = [
+                v for v in assertion_values
+                if contains(v, values)]
 
         if eval_type == self._EvalType.ANY_ONE_OF:
             return bool(matches)
         elif eval_type == self._EvalType.NOT_ANY_OF:
             return not bool(matches)
         elif eval_type == self._EvalType.BLACKLIST:
-            return list(set(assertion_values).difference(set(matches)))
+            return [v for v in assertion_values if v not in matches]
         elif eval_type == self._EvalType.WHITELIST:
-            return list(matches)
+            return matches
         else:
             raise exception.UnexpectedError(
                 _('Unexpected evaluation type "%(eval_type)s"') % {
