@@ -65,6 +65,7 @@ PROJECTS_SCHEMA = {
         "additionalProperties": False,
         "properties": {
             "name": {"type": "string"},
+            "extra": {"type": "object"},
             "roles": ROLE_PROPERTIES
         }
     }
