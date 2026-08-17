@@ -58,7 +58,11 @@ PROJECTS_SCHEMA = {
         "type": "object",
         "required": ["name", "roles"],
         "additionalProperties": False,
-        "properties": {"name": {"type": "string"}, "roles": ROLE_PROPERTIES},
+        "properties": {
+            "name": {"type": "string"},
+            "extra": {"type": "object"},
+            "roles": ROLE_PROPERTIES,
+        },
     },
 }
 
