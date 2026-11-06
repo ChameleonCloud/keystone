@@ -1039,6 +1039,25 @@ class SqlIdentity(
         self.assertEqual(first_call_counter, counter.calls)
         self.assertEqual(3, counter.calls)
 
+    def test_user_with_federated_attributes_is_listed_once_by_name(self):
+        self._build_fed_resource()
+        user = unit.new_user_ref(domain_id=CONF.identity.default_domain_id)
+        user['federated'] = [
+            {
+                'idp_id': 'ORG_IDP',
+                'protocols': [
+                    {'protocol_id': 'saml2', 'unique_id': uuid.uuid4().hex}
+                ],
+            }
+        ]
+        user = PROVIDERS.identity_api.create_user(user)
+
+        hints = driver_hints.Hints()
+        hints.add_filter('name', user['name'])
+        users = PROVIDERS.identity_api.list_users(hints=hints)
+        self.assertEqual(1, len(users))
+        self.assertEqual(user['id'], users[0]['id'])
+
     def test_check_project_depth(self):
         # Create a 3 level project tree:
         #

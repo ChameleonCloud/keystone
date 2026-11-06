@@ -1264,15 +1264,21 @@ class Manager(manager.Manager):
         for filter_ in hints.filters:
             if filter_['name'] in federated_attributes:
                 return PROVIDERS.shadow_users_api.get_federated_users(hints)
-            # Note: If the filters contain 'name', we should get the user from
-            # both local user and shadow user backend.
+            # Drivers don't search federated_user.display_name, so do that
+            # search here. Users from this search may overlap with driver
+            # results.
             if filter_['name'] == 'name':
                 fed_hints = copy.deepcopy(hints)
                 fed_res = PROVIDERS.shadow_users_api.get_federated_users(
                     fed_hints
                 )
                 break
-        return driver.list_users(hints) + fed_res
+        users = driver.list_users(hints)
+        user_ids = {user['id'] for user in users}
+        # Deduplicate users that were matched by both the driver and
+        # federated_user.display_name.
+        fed_name_only = [u for u in fed_res if u['id'] not in user_ids]
+        return users + fed_name_only
 
     @domains_configured
     @exception_translated('user')

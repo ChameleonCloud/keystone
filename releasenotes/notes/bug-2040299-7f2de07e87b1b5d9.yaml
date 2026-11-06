@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    [`bug 2040299 <https://bugs.launchpad.net/keystone/+bug/2040299>`_]
+    Fixed ``GET /v3/users?name=<name>`` returning the same user twice when
+    the user was created with the ``federated`` attribute. This made
+    ``openstack user show <name>`` fail with "More than one user exists".
