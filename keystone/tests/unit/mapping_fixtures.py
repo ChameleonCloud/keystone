@@ -1320,3 +1320,20 @@ MAPPING_PROJECT_MAPPED_NAME_AND_ROLES = {
         }
     ]
 }
+
+MAPPING_PROJECTS_MAPPED_NAME_AND_STATIC_PROJECT = {
+    "rules": [
+        {
+            "local": [
+                {"user": {"name": "{0}"}},
+                {
+                    "projects": [
+                        {"name": "{1}", "roles": [{"name": "member"}]},
+                        {"name": "Production", "roles": [{"name": "admin"}]},
+                    ]
+                },
+            ],
+            "remote": [{"type": "UserName"}, {"type": "orgPersonBuilding"}],
+        }
+    ]
+}
