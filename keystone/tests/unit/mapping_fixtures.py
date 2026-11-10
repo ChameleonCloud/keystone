@@ -1143,10 +1143,10 @@ MAPPING_PROJECTS = {
                 },
             ],
             "remote": [
-                {
-                    "type": "UserName"
-                }
-            ]
+                {"type": "UserName"},
+                {"type": "Email"},
+                {"type": "orgPersonType", "any_one_of": ["Employee"]},
+            ],
         }
     ]
 }
@@ -1317,6 +1317,23 @@ MAPPING_PROJECT_MAPPED_NAME_AND_ROLES = {
                     "type": "orgPersonType"
                 }
             ]
+        }
+    ]
+}
+
+MAPPING_PROJECTS_MAPPED_NAME_AND_STATIC_PROJECT = {
+    "rules": [
+        {
+            "local": [
+                {"user": {"name": "{0}"}},
+                {
+                    "projects": [
+                        {"name": "{1}", "roles": [{"name": "member"}]},
+                        {"name": "Production", "roles": [{"name": "admin"}]},
+                    ]
+                },
+            ],
+            "remote": [{"type": "UserName"}, {"type": "orgPersonBuilding"}],
         }
     ]
 }
