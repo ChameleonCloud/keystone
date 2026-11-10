@@ -724,7 +724,7 @@ class RuleProcessor:
                 'projects' in identity_value
                 or 'projects_json' in identity_value
             ):
-                projects = self.extract_projects(identity_value)
+                projects.extend(self.extract_projects(identity_value))
 
         self.normalize_user(user, identity_value.get('domain'))
 
