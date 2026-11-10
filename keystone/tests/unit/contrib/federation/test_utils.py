@@ -909,6 +909,40 @@ class MappingRuleEngineTests(unit.BaseTestCase):
         ]
         self.assertEqual(expected_projects, values['projects'])
 
+    def test_mapping_projects_schema_2_0_keeps_domain(self):
+        mapping = mapping_fixtures.MAPPING_PROJECTS_WITH_DOMAIN
+        assertion = mapping_fixtures.EMPLOYEE_ASSERTION
+        rp = mapping_utils.RuleProcessorToHonorDomainOption(
+            FAKE_MAPPING_ID, mapping['rules']
+        )
+        values = rp.process(assertion)
+
+        expected_projects = [
+            {
+                "name": "Production",
+                "roles": [{"name": "member"}],
+                "domain": {"name": "default_domain"},
+            }
+        ]
+        self.assertEqual(expected_projects, values['projects'])
+
+    def test_mapping_projects_json_schema_3_0(self):
+        mapping = mapping_fixtures.MAPPING_PROJECTS_JSON
+        assertion = mapping_fixtures.EMPLOYEE_ASSERTION_PROJECTS_JSON
+        rp = mapping_utils.RuleProcessorForProjectJsonAttribute(
+            FAKE_MAPPING_ID, mapping['rules']
+        )
+        values = rp.process(assertion)
+
+        expected_projects = [
+            {
+                "name": "Staging",
+                "roles": [{"name": "member"}],
+                "domain": {"name": "other_domain"},
+            }
+        ]
+        self.assertEqual(expected_projects, values['projects'])
+
     def test_mapping_projects(self):
         mapping = mapping_fixtures.MAPPING_PROJECTS
         assertion = mapping_fixtures.EMPLOYEE_ASSERTION
