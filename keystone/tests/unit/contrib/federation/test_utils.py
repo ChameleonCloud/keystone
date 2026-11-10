@@ -1029,6 +1029,42 @@ class MappingRuleEngineTests(unit.BaseTestCase):
         ]
         self.assertEqual(expected_projects, values['projects'])
 
+    def test_mapping_projects_mapped_name_schema_2_0_keeps_domain(self):
+        """Projects expanded under schema 2.0 keep the mapping's domain."""
+        mapping = mapping_fixtures.MAPPING_PROJECTS_MAPPED_NAME_WITH_DOMAIN
+        assertion = mapping_fixtures.EMPLOYEE_ASSERTION_MULTIPLE_GROUP_TYPES
+        rp = mapping_utils.RuleProcessorToHonorDomainOption(
+            FAKE_MAPPING_ID, mapping['rules']
+        )
+        values = rp.process(assertion)
+
+        domain = {"name": "default_domain"}
+        expected_projects = [
+            {
+                "name": "BuildingX",
+                "roles": [{"name": "member"}],
+                "domain": domain,
+            },
+            {
+                "name": "BuildingY",
+                "roles": [{"name": "member"}],
+                "domain": domain,
+            },
+        ]
+        self.assertEqual(expected_projects, values['projects'])
+
+    def test_mapping_projects_json_schema_3_0_keeps_projects(self):
+        """Projects from projects_json under schema 3.0 are kept unchanged."""
+        mapping = mapping_fixtures.MAPPING_PROJECTS_JSON
+        assertion = mapping_fixtures.EMPLOYEE_ASSERTION_PROJECTS_JSON
+        rp = mapping_utils.RuleProcessorForProjectJsonAttribute(
+            FAKE_MAPPING_ID, mapping['rules']
+        )
+        values = rp.process(assertion)
+
+        expected_projects = jsonutils.loads(assertion['ProjectsJson'])
+        self.assertEqual(expected_projects, values['projects'])
+
 
 class TestUnicodeAssertionData(unit.BaseTestCase):
     """Ensure that unicode data in the assertion headers works.

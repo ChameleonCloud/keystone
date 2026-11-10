@@ -1337,3 +1337,37 @@ MAPPING_PROJECTS_MAPPED_NAME_AND_STATIC_PROJECT = {
         }
     ]
 }
+
+EMPLOYEE_ASSERTION_PROJECTS_JSON = {
+    'UserName': 'tbo',
+    'ProjectsJson': (
+        '[{"name": "Staging", "roles": [{"name": "member"}], '
+        '"domain": {"name": "other_domain"}}]'
+    ),
+}
+
+MAPPING_PROJECTS_MAPPED_NAME_WITH_DOMAIN = {
+    "rules": [
+        {
+            "local": [
+                {"user": {"name": "{0}"}},
+                {
+                    "projects": [
+                        {"name": "{1}", "roles": [{"name": "member"}]}
+                    ],
+                    "domain": {"name": "default_domain"},
+                },
+            ],
+            "remote": [{"type": "UserName"}, {"type": "orgPersonBuilding"}],
+        }
+    ]
+}
+
+MAPPING_PROJECTS_JSON = {
+    "rules": [
+        {
+            "local": [{"user": {"name": "{0}"}}, {"projects_json": "{1}"}],
+            "remote": [{"type": "UserName"}, {"type": "ProjectsJson"}],
+        }
+    ]
+}
