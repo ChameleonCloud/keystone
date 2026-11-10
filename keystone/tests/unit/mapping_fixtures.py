@@ -1142,6 +1142,32 @@ MAPPING_PROJECTS = {
     ]
 }
 
+MAPPING_PROJECTS_MULTIPLE_RULES = {
+    "rules": [
+        {
+            "local": [
+                {"user": {"name": "{0}"}},
+                {
+                    "projects": [
+                        {"name": "Production", "roles": [{"name": "member"}]}
+                    ]
+                },
+            ],
+            "remote": [{"type": "UserName"}],
+        },
+        {
+            "local": [
+                {
+                    "projects": [
+                        {"name": "Staging", "roles": [{"name": "member"}]}
+                    ]
+                }
+            ],
+            "remote": [{"type": "UserName"}],
+        },
+    ]
+}
+
 MAPPING_PROJECTS_WITHOUT_ROLES = {
     "rules": [
         {

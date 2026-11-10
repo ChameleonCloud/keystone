@@ -897,6 +897,18 @@ class MappingRuleEngineTests(unit.BaseTestCase):
             ['210mlk', '321cba'], mapped_properties['group_ids']
         )
 
+    def test_mapping_projects_from_multiple_rules(self):
+        mapping = mapping_fixtures.MAPPING_PROJECTS_MULTIPLE_RULES
+        assertion = mapping_fixtures.EMPLOYEE_ASSERTION
+        rp = mapping_utils.RuleProcessor(FAKE_MAPPING_ID, mapping['rules'])
+        values = rp.process(assertion)
+
+        expected_projects = [
+            {"name": "Production", "roles": [{"name": "member"}]},
+            {"name": "Staging", "roles": [{"name": "member"}]},
+        ]
+        self.assertEqual(expected_projects, values['projects'])
+
     def test_mapping_projects(self):
         mapping = mapping_fixtures.MAPPING_PROJECTS
         assertion = mapping_fixtures.EMPLOYEE_ASSERTION
