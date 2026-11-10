@@ -631,17 +631,17 @@ class RuleProcessor:
         for groups in list(groups_by_domain.values()):
             yield from list({g['name']: g for g in groups}.values())
 
-    def _normalize_projects(self, identity_value):
+    def _normalize_projects(self, projects):
         project_dicts = []
-        for project in identity_value['projects']:
+        for project in projects:
             project_names_list = self._expand_listlike(project['name'])
             role_names_list = []
             for role in project['roles']:
                 role_names_list.extend(self._expand_listlike(role['name']))
-            project_dicts.extend([{'name': p_name, 'roles': [
+            project_dicts.extend([dict(project,name=p_name, roles=[
                                     {'name': r_name}
                                     for r_name in role_names_list
-                                 ]} for p_name in project_names_list])
+                                 ]) for p_name in project_names_list])
         return project_dicts
 
     def _expand_listlike(self, value):
@@ -752,7 +752,11 @@ class RuleProcessor:
                 'projects' in identity_value
                 or 'projects_json' in identity_value
             ):
-                projects.extend(self._normalize_projects(identity_value))
+                projects.extend(
+                    self._normalize_projects(
+                        self.extract_projects(identity_value)
+                    )
+                )
 
         self.normalize_user(user, identity_value.get('domain'))
 
