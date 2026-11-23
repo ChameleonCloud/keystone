@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    [`bug 2061922 <https://bugs.launchpad.net/keystone/+bug/2061922>`_]
+    When ``[identity] password_hash_algorithm`` is ``bcrypt`` (the default)
+    and ``[identity] max_password_length`` is greater than 72 (the default is
+    4096), keystone no longer logs "Truncating password to algorithm specific
+    maximum length 72 characters." on every password or application
+    credential check. A warning is now logged only when a password is
+    actually longer than 72 bytes and is truncated. Passwords are still
+    truncated at the same length as before, so existing password and
+    application credential hashes are unaffected.

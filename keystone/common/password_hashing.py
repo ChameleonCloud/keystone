@@ -93,22 +93,14 @@ def verify_length_and_trunc_password(password) -> bytes:
     https://passlib.readthedocs.io/en/stable/lib/passlib.hash.bcrypt.html#security-issues
 
     """
-    # When using bcrypt, we limit the password length to 54 to ensure all
-    # bytes are fully mixed. See:
+    # bcrypt only uses the first 72 bytes of its input, so cap the length
+    # there even if max_password_length is larger. Only passwords that
+    # actually exceed the cap are truncated (and logged) below. See:
     # https://passlib.readthedocs.io/en/stable/lib/passlib.hash.bcrypt.html#security-issues
     BCRYPT_MAX_LENGTH = 72
-    if (
-        CONF.identity.password_hash_algorithm == 'bcrypt'  # nosec: B105
-        and CONF.identity.max_password_length > BCRYPT_MAX_LENGTH
-    ):
-        msg = (
-            "Truncating password to algorithm specific maximum length %d"
-            " characters."
-        )
-        LOG.warning(msg, BCRYPT_MAX_LENGTH)
-        max_length = BCRYPT_MAX_LENGTH
-    else:
-        max_length = CONF.identity.max_password_length
+    max_length = CONF.identity.max_password_length
+    if CONF.identity.password_hash_algorithm == 'bcrypt':  # noqa: S105
+        max_length = min(max_length, BCRYPT_MAX_LENGTH)
 
     try:
         password_utf8 = password.encode('utf-8')

@@ -150,6 +150,31 @@ class UtilsTestCase(unit.BaseTestCase):
             invalid_length_password,
         )
 
+    def test_bcrypt_short_password_not_truncated_or_logged(self):
+        # Bug 2061922: a truncation warning was logged for every password
+        # when using bcrypt with the default max_password_length, even
+        # though no password was truncated.
+        logging_fixture = self.useFixture(fixtures.FakeLogger(level=log.DEBUG))
+        self.config_fixture.config(strict_password_check=False)
+        self.config_fixture.config(
+            group='identity', password_hash_algorithm='bcrypt'
+        )
+        password = '0' * 72
+        verified = common_utils.verify_length_and_trunc_password(password)
+        self.assertEqual(password.encode('utf-8'), verified)
+        self.assertNotIn('Truncating', logging_fixture.output)
+
+    def test_bcrypt_long_password_truncated_and_logged(self):
+        logging_fixture = self.useFixture(fixtures.FakeLogger(level=log.DEBUG))
+        self.config_fixture.config(strict_password_check=False)
+        self.config_fixture.config(
+            group='identity', password_hash_algorithm='bcrypt'
+        )
+        password = '0' * 73
+        verified = common_utils.verify_length_and_trunc_password(password)
+        self.assertEqual(password.encode('utf-8')[:72], verified)
+        self.assertEqual(1, logging_fixture.output.count('Truncating'))
+
     def test_bcrypt_sha256_not_truncate_password(self):
         self.config_fixture.config(strict_password_check=True)
         self.config_fixture.config(
