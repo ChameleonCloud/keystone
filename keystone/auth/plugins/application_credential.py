@@ -12,11 +12,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from oslo_log import log
+
 from keystone.auth import plugins as auth_plugins
 from keystone.auth.plugins import base
 from keystone.common import provider_api
 from keystone import exception
 
+LOG = log.getLogger(__name__)
 PROVIDERS = provider_api.ProviderAPIs
 METHOD_NAME = 'application_credential'
 
@@ -36,6 +39,14 @@ class ApplicationCredential(base.AuthMethodHandler):
             )
         except AssertionError as e:
             raise exception.Unauthorized(e)
+        LOG.info(
+            'Authenticated with application credential %(app_cred_id)s '
+            'for user %(user_id)s',
+            {
+                'app_cred_id': app_cred_info.id,
+                'user_id': app_cred_info.user_id,
+            },
+        )
         response_data['user_id'] = app_cred_info.user_id
 
         return base.AuthHandlerResponse(
